@@ -53,7 +53,7 @@ extract($vars);
     }
 
     // 1. Wait for the page to load
-    $(function() {
+    $(window).on('load', function() {
 
         $('#an-cc-number').payment('formatCardNumber');
         $('#an-cc-exp').payment('formatCardExpiry');
