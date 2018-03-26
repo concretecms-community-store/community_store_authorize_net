@@ -99,6 +99,8 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
     {
         $customer = new StoreCustomer();
 
+        $th = Core::make('helper/text');
+
         $currency = Config::get('community_store_authorize_net.currency');
         $mode = Config::get('community_store_authorize_net.mode');
         $total = number_format(StoreCalculator::getGrandTotal(), 2, '.', '');
@@ -141,7 +143,7 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
             $qty = $cartItem['product']['qty'];
             $product = $cartItem['product']['object'];
 
-            $transRequestXmlStr .= '<name>' . trim(h($product->getName())) . '</name>';
+            $transRequestXmlStr .= '<name>' . $th->shortText(trim(h($product->getName())),31, '') . '</name>';
 
             $description = '';
             $descriptions = [];
@@ -180,10 +182,16 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
 
             $description = implode(', ', $descriptions);
 
-            $transRequestXmlStr .= '<description>' . trim(h($description)) . '</description>';
+            $transRequestXmlStr .= '<description>' .  $th->shortText(trim(h($description)), 255, '') . '</description>';
             $transRequestXmlStr .= '<quantity>' . $qty . '</quantity>';
-            $transRequestXmlStr .= '<unitPrice>' . $product->getActivePrice() . '</unitPrice>';
 
+            $productprice = $product->getActivePrice();
+
+            if (!$productprice) {
+                $productprice = (float)$cartItem['product']['customerPrice'];
+            }
+
+            $transRequestXmlStr .= '<unitPrice>' . $productprice . '</unitPrice>';
 
             $transRequestXmlStr .= '</lineItem>';
         }
@@ -242,9 +250,6 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
             curl_close($ch);
 
             $xmlResult = simplexml_load_string($content, 'SimpleXMLElement', LIBXML_NOWARNING);
-
-            echo $content;
-            exit();
 
             $resultcode = $xmlResult->transactionResponse->responseCode[0];
 
