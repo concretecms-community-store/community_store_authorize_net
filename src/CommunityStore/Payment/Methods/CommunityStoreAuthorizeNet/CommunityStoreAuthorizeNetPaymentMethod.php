@@ -273,6 +273,11 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
     {
         return $this->getPaymentMethodName();
     }
+    
+    public function getPaymentMinimum() {
+        return 0.01;
+    }
+
 
 }
 
