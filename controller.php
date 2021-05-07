@@ -20,9 +20,13 @@ class Controller extends Package
     {
         return t("Authorize.Net Payment Method");
     }
-    
+
     public function install()
     {
+        if (!@include(__DIR__ . '/vendor/autoload.php')) {
+            throw new ErrorException(t('Third party libraries not installed. Use a release version of this add-on with libraries pre-installed, or run composer install against the package folder.'));
+        }
+
         $installed = Package::getInstalledHandles();
         if(!(is_array($installed) && in_array('community_store',$installed)) ) {
             throw new ErrorException(t('This package requires that Community Store be installed'));
