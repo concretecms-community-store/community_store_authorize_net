@@ -143,7 +143,7 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
             $qty = $cartItem['product']['qty'];
             $product = $cartItem['product']['object'];
 
-            $transRequestXmlStr .= '<name>' . $th->shortText(trim(h($product->getName())),31, '') . '</name>';
+            $transRequestXmlStr .= '<name>' . h(trim($th->shortText($product->getName(),31,''))) . '</name>';
 
             $description = '';
             $descriptions = [];
@@ -273,6 +273,11 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
     {
         return $this->getPaymentMethodName();
     }
+    
+    public function getPaymentMinimum() {
+        return 0.01;
+    }
+
 
 }
 
