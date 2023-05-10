@@ -3,8 +3,7 @@
 namespace Concrete\Package\CommunityStoreAuthorizeNet\Src\CommunityStore\Payment\Methods\CommunityStoreAuthorizeNet;
 
 use Concrete\Package\CommunityStore\Controller\SinglePage\Dashboard\Store;
-use Core;
-use Config;
+use Concrete\Core\Support\Facade\Config;
 use Exception;
 
 use \Concrete\Package\CommunityStore\Src\CommunityStore\Payment\Method as StorePaymentMethod;
@@ -29,7 +28,7 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
         $this->set('authorizeNetLiveClientKey', Config::get('community_store_authorize_net.liveClientKey'));
         $this->set('authorizeNetTestTransactionKey', Config::get('community_store_authorize_net.testTransactionKey'));
         $this->set('authorizeNetLiveTransactionKey', Config::get('community_store_authorize_net.liveTransactionKey'));
-        $this->set('form', Core::make("helper/form"));
+        $this->set('form', app()->make("helper/form"));
 
         $currencies = [
             'USD' => t('United States Dollar'),
@@ -52,12 +51,12 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
     {
         Config::save('community_store_authorize_net.mode', $data['authorizeNetMode']);
         Config::save('community_store_authorize_net.currency', $data['authorizeNetCurrency']);
-        Config::save('community_store_authorize_net.testLoginID', $data['authorizeNetTestLoginID']);
-        Config::save('community_store_authorize_net.liveLoginID', $data['authorizeNetLiveLoginID']);
-        Config::save('community_store_authorize_net.testClientKey', $data['authorizeNetTestClientKey']);
-        Config::save('community_store_authorize_net.liveClientKey', $data['authorizeNetLiveClientKey']);
-        Config::save('community_store_authorize_net.testTransactionKey', $data['authorizeNetTestTransactionKey']);
-        Config::save('community_store_authorize_net.liveTransactionKey', $data['authorizeNetLiveTransactionKey']);
+        Config::save('community_store_authorize_net.testLoginID', trim($data['authorizeNetTestLoginID']));
+        Config::save('community_store_authorize_net.liveLoginID', trim($data['authorizeNetLiveLoginID']));
+        Config::save('community_store_authorize_net.testClientKey', trim($data['authorizeNetTestClientKey']));
+        Config::save('community_store_authorize_net.liveClientKey', trim($data['authorizeNetLiveClientKey']));
+        Config::save('community_store_authorize_net.testTransactionKey', trim($data['authorizeNetTestTransactionKey']));
+        Config::save('community_store_authorize_net.liveTransactionKey', trim($data['authorizeNetLiveTransactionKey']));
     }
 
     public function validate($args, $e)
@@ -82,7 +81,7 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
         $customer = new StoreCustomer();
 
         $this->set('email', $customer->getEmail());
-        $this->set('form', Core::make("helper/form"));
+        $this->set('form', app()->make("helper/form"));
         $this->set('amount', number_format(StoreCalculator::getGrandTotal() * 100, 0, '', ''));
 
         $pmID = StorePaymentMethod::getByHandle('community_store_authorize_net')->getID();
@@ -90,7 +89,7 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
         $years = [];
         $year = date("Y");
         for ($i = 0; $i < 15; $i++) {
-            $years[$year + $i] = $year + $i;
+            $years[(int)$year + $i] = (int)$year + $i;
         }
         $this->set("years", $years);
     }
@@ -99,7 +98,7 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
     {
         $customer = new StoreCustomer();
 
-        $th = Core::make('helper/text');
+        $th = app()->make('helper/text');
 
         $currency = Config::get('community_store_authorize_net.currency');
         $mode = Config::get('community_store_authorize_net.mode');
@@ -273,7 +272,7 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
     {
         return $this->getPaymentMethodName();
     }
-    
+
     public function getPaymentMinimum() {
         return 0.01;
     }

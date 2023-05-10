@@ -15,6 +15,7 @@ extract($vars);
     }
 
     function an_handleSuccess(responseData) {
+
         var form = $('#store-checkout-form-group-payment');
 
         $('<input>')
@@ -103,29 +104,29 @@ extract($vars);
                 var validcard = $.payment.validateCardNumber($('#an-cc-number').val());
 
                 if (!validcard) {
-                    $('#an-cc-number').closest('.form-group').addClass('has-error');
+                    $('#an-cc-number').closest('.form-group').addClass('has-error').find('input').addClass('is-invalid');
                     allvalid = false;
                 } else {
-                    $('#an-cc-number').closest('.form-group').removeClass('has-error');
+                    $('#an-cc-number').closest('.form-group').removeClass('has-error').find('input').removeClass('is-invalid');
                 }
 
                 var expiry = $('#an-cc-exp').payment('cardExpiryVal');
                 var validexpiry = $.payment.validateCardExpiry(expiry.month, expiry.year);
 
                 if (!validexpiry) {
-                    $('#an-cc-exp').closest('.form-group').addClass('has-error');
+                    $('#an-cc-exp').closest('.form-group').addClass('has-error').find('input').addClass('is-invalid');
                     allvalid = false;
                 } else {
-                    $('#an-cc-exp').closest('.form-group').removeClass('has-error');
+                    $('#an-cc-exp').closest('.form-group').removeClass('has-error').find('input').removeClass('is-invalid');
                 }
 
                 var validcv = $.payment.validateCardCVC($('#an-cc-cvc').val());
 
                 if (!validcv) {
-                    $('#an-cc-cvc').closest('.form-group').addClass('has-error');
+                    $('#an-cc-cvc').closest('.form-group').addClass('has-error').find('input').addClass('is-invalid');
                     allvalid = false;
                 } else {
-                    $('#an-cc-cvc').closest('.form-group').removeClass('has-error');
+                    $('#an-cc-cvc').closest('.form-group').removeClass('has-error').find('input').removeClass('is-invalid');
                 }
 
                 if (!allvalid) {
@@ -180,8 +181,8 @@ extract($vars);
     <div class="panel-body">
         <div style="display:none;" class="store-payment-errors an-payment-errors">
         </div>
-        <div class="row">
-            <div class="col-xs-12">
+        <div class="row  ">
+            <div class="col-xs-12 mb-2">
                 <div class="form-group">
                     <label for="cardNumber"><?= t('Card Number');?></label>
                     <div class="input-group">
@@ -192,13 +193,13 @@ extract($vars);
                             placeholder="<?= t('Card Number');?>"
                             autocomplete="cc-number"
                             />
-                        <span class="input-group-addon"><i class="fa fa-credit-card"></i></span>
+                        <span class="input-group-addon input-group-text"><i class="fa fa-credit-card"></i></span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-xs-7 col-md-7">
+        <div class="row ">
+            <div class="col-xs-7 col-md-7 mb-2">
                 <div class="form-group">
                     <label for="cardExpiry"><?= t('Expiration Date');?></label>
                     <input
@@ -210,7 +211,7 @@ extract($vars);
                         />
                 </div>
             </div>
-            <div class="col-xs-5 col-md-5 pull-right">
+            <div class="col-xs-5 col-md-5 mb-2">
                 <div class="form-group">
                     <label for="cardCVC"><?= t('CV Code');?></label>
                     <input

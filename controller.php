@@ -1,15 +1,20 @@
 <?php
 namespace Concrete\Package\CommunityStoreAuthorizeNet;
 
-use Package;
+use Concrete\Core\Package\Package;
 use Whoops\Exception\ErrorException;
 use \Concrete\Package\CommunityStore\Src\CommunityStore\Payment\Method as PaymentMethod;
 
 class Controller extends Package
 {
     protected $pkgHandle = 'community_store_authorize_net';
-    protected $appVersionRequired = '5.7.5';
-    protected $pkgVersion = '1.0.2';
+    protected $appVersionRequired = '8.0';
+    protected $pkgVersion = '1.1';
+
+
+    protected $pkgAutoloaderRegistries = [
+        'src/CommunityStore' => '\Concrete\Package\CommunityStoreAuthorizeNet\Src\CommunityStore',
+    ];
 
     public function getPackageDescription()
     {
@@ -27,7 +32,7 @@ class Controller extends Package
             throw new ErrorException(t('Third party libraries not installed. Use a release version of this add-on with libraries pre-installed, or run composer install against the package folder.'));
         }
 
-        $installed = Package::getInstalledHandles();
+        $installed = app()->make('Concrete\Core\Package\PackageService')->getInstalledHandles();
         if(!(is_array($installed) && in_array('community_store',$installed)) ) {
             throw new ErrorException(t('This package requires that Community Store be installed'));
         } else {
@@ -47,7 +52,7 @@ class Controller extends Package
         if ($pm) {
             $pm->delete();
         }
-        $pkg = parent::uninstall();
+        parent::uninstall();
     }
 
 }

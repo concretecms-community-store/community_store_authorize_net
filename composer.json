@@ -1,5 +1,5 @@
 {
   "require": {
-    "authorizenet/authorizenet": "1.9.2"
+    "authorizenet/authorizenet": "1.9.9"
   }
 }
