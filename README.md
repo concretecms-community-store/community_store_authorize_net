@@ -1,3 +1,6 @@
+**Please Note:** This payment method is no longer recommended for Authorize.net - please use the [Accept Hosted integration](https://github.com/concretecms-community-store/community_store_authorize_net_accept_hosted)
+
+----
 # community_store_authorize_net
 Authorize.net payment add-on for Community Store for concrete5
 
