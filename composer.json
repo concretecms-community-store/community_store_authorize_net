@@ -1,5 +1,10 @@
 {
   "require": {
     "authorizenet/authorizenet": "1.9.9"
+  },
+  "config": {
+    "platform": {
+      "php": "7.4"
+    }
   }
 }
