@@ -114,8 +114,9 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
 
         $cart = StoreCart::getCart();
 
-        $transRequestXmlStr =
-            '<?xml version="1.0" encoding="UTF-8"?>
+        if (isset($_POST['dataDesc']) && isset($_POST['dataValue'] )) {
+            $transRequestXmlStr =
+                '<?xml version="1.0" encoding="UTF-8"?>
 <createTransactionRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
       <merchantAuthentication>
         <name>' . $loginID . '</name>
@@ -133,70 +134,70 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
          </payment>';
 
 
-        $transRequestXmlStr .= '<lineItems>';
-        $itemid = 1;
-        foreach ($cart as $k => $cartItem) {
-            $transRequestXmlStr .= '<lineItem>';
-            $transRequestXmlStr .= '<itemId>'. $itemid++  .'</itemId>';
+            $transRequestXmlStr .= '<lineItems>';
+            $itemid = 1;
+            foreach ($cart as $k => $cartItem) {
+                $transRequestXmlStr .= '<lineItem>';
+                $transRequestXmlStr .= '<itemId>' . $itemid++ . '</itemId>';
 
-            $qty = $cartItem['product']['qty'];
-            $product = $cartItem['product']['object'];
+                $qty = $cartItem['product']['qty'];
+                $product = $cartItem['product']['object'];
 
-            $transRequestXmlStr .= '<name>' . h(trim($th->shortText($product->getName(),31,''))) . '</name>';
+                $transRequestXmlStr .= '<name>' . h(trim($th->shortText($product->getName(), 31, ''))) . '</name>';
 
-            $description = '';
-            $descriptions = [];
+                $description = '';
+                $descriptions = [];
 
-            // this code should be refactored into the core at some point
-            foreach ($cartItem['productAttributes'] as $groupID => $valID) {
-                $optionvalue = '';
+                // this code should be refactored into the core at some point
+                foreach ($cartItem['productAttributes'] as $groupID => $valID) {
+                    $optionvalue = '';
 
-                if (substr($groupID, 0, 2) == 'po') {
-                    $groupID = str_replace("po", "", $groupID);
-                    $optionvalue = StoreProductOptionItem::getByID($valID);
+                    if (substr($groupID, 0, 2) == 'po') {
+                        $groupID = str_replace("po", "", $groupID);
+                        $optionvalue = StoreProductOptionItem::getByID($valID);
+
+                        if ($optionvalue) {
+                            $optionvalue = $optionvalue->getName();
+                        }
+                    } elseif (substr($groupID, 0, 2) == 'pt') {
+                        $groupID = str_replace("pt", "", $groupID);
+                        $optionvalue = $valID;
+                    } elseif (substr($groupID, 0, 2) == 'pa') {
+                        $groupID = str_replace("pa", "", $groupID);
+                        $optionvalue = $valID;
+                    } elseif (substr($groupID, 0, 2) == 'ph') {
+                        $groupID = str_replace("ph", "", $groupID);
+                        $optionvalue = $valID;
+                    } elseif (substr($groupID, 0, 2) == 'pc') {
+                        $groupID = str_replace("pc", "", $groupID);
+                        $optionvalue = $valID;
+                    }
+
+                    $optiongroup = StoreProductOption::getByID($groupID);
 
                     if ($optionvalue) {
-                        $optionvalue = $optionvalue->getName();
+                        $descriptions[] = ($optiongroup ? h($optiongroup->getName()) : '') . ': ' . ($optionvalue ? h($optionvalue) : '');
                     }
-                } elseif (substr($groupID, 0, 2) == 'pt') {
-                    $groupID = str_replace("pt", "", $groupID);
-                    $optionvalue = $valID;
-                } elseif (substr($groupID, 0, 2) == 'pa') {
-                    $groupID = str_replace("pa", "", $groupID);
-                    $optionvalue = $valID;
-                } elseif (substr($groupID, 0, 2) == 'ph') {
-                    $groupID = str_replace("ph", "", $groupID);
-                    $optionvalue = $valID;
-                } elseif (substr($groupID, 0, 2) == 'pc') {
-                    $groupID = str_replace("pc", "", $groupID);
-                    $optionvalue = $valID;
                 }
 
-                $optiongroup = StoreProductOption::getByID($groupID);
+                $description = implode(', ', $descriptions);
 
-                if ($optionvalue) {
-                    $descriptions[] = ($optiongroup ? h($optiongroup->getName()) : '') . ': ' . ($optionvalue ? h($optionvalue) : '');
+                $transRequestXmlStr .= '<description>' . $th->shortText(trim(h($description)), 255, '') . '</description>';
+                $transRequestXmlStr .= '<quantity>' . $qty . '</quantity>';
+
+                $productprice = $product->getActivePrice();
+
+                if (!$productprice) {
+                    $productprice = (float)$cartItem['product']['customerPrice'];
                 }
+
+                $transRequestXmlStr .= '<unitPrice>' . $productprice . '</unitPrice>';
+
+                $transRequestXmlStr .= '</lineItem>';
             }
+            $transRequestXmlStr .= '</lineItems>';
 
-            $description = implode(', ', $descriptions);
-
-            $transRequestXmlStr .= '<description>' .  $th->shortText(trim(h($description)), 255, '') . '</description>';
-            $transRequestXmlStr .= '<quantity>' . $qty . '</quantity>';
-
-            $productprice = $product->getActivePrice();
-
-            if (!$productprice) {
-                $productprice = (float)$cartItem['product']['customerPrice'];
-            }
-
-            $transRequestXmlStr .= '<unitPrice>' . $productprice . '</unitPrice>';
-
-            $transRequestXmlStr .= '</lineItem>';
-        }
-        $transRequestXmlStr .= '</lineItems>';
-
-        $transRequestXmlStr .= '<customer>
+            $transRequestXmlStr .= '<customer>
             <email>' . h($customer->getEmail()) . '</email>
          </customer>
          <billTo>
@@ -210,10 +211,10 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
             <phoneNumber>' . h($customer->getValue("billing_phone")) . '</phoneNumber>
          </billTo>';
 
-        $shipping = StoreShippingMethod::getActiveShippingMethod();
+            $shipping = StoreShippingMethod::getActiveShippingMethod();
 
-        if ($shipping) {
-            $transRequestXmlStr .= '<shipTo>
+            if ($shipping) {
+                $transRequestXmlStr .= '<shipTo>
             <firstName>' . trim(h($customer->getValue('shipping_first_name'))) . '</firstName>
             <lastName>' . trim(h($customer->getValue('shipping_last_name'))) . '</lastName>
             <address>' . trim(h($customer->getAddressValue('shipping_address', 'address1')) . ' ' . h($customer->getAddressValue('billing_address', 'address2'))) . '</address>
@@ -222,45 +223,48 @@ class CommunityStoreAuthorizeNetPaymentMethod extends StorePaymentMethod
             <zip>' . h($customer->getAddressValue('shipping_address', 'postal_code')) . '</zip>
             <country>' . h($customer->getAddressValue('shipping_address', 'country')) . '</country>
             </shipTo>';
-        }
+            }
 
 
-        $transRequestXmlStr .= '</transactionRequest>
+            $transRequestXmlStr .= '</transactionRequest>
 </createTransactionRequest>';
 
 
-        $url = 'https://api' . ($mode == 'test' ? 'test' : '') . '.authorize.net/xml/v1/request.api';
+            $url = 'https://api' . ($mode == 'test' ? 'test' : '') . '.authorize.net/xml/v1/request.api';
 
-        try {    //setting the curl parameters.
-            $ch = curl_init();
-            if (FALSE === $ch)
-                throw new Exception('failed to initialize');
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/xml']);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $transRequestXmlStr);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 300);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
-            $content = curl_exec($ch);
-            if (FALSE === $content)
-                throw new Exception(curl_error($ch), curl_errno($ch));
-            curl_close($ch);
+            try {    //setting the curl parameters.
+                $ch = curl_init();
+                if (FALSE === $ch)
+                    throw new Exception('failed to initialize');
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/xml']);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $transRequestXmlStr);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 300);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
+                $content = curl_exec($ch);
+                if (FALSE === $content)
+                    throw new Exception(curl_error($ch), curl_errno($ch));
+                curl_close($ch);
 
-            $xmlResult = simplexml_load_string($content, 'SimpleXMLElement', LIBXML_NOWARNING);
+                $xmlResult = simplexml_load_string($content, 'SimpleXMLElement', LIBXML_NOWARNING);
 
-            $resultcode = $xmlResult->transactionResponse->responseCode[0];
+                $resultcode = $xmlResult->transactionResponse->responseCode[0];
 
-            if ($resultcode == '1' || $resultcode == '4') {
-                return ['error' => 0, 'transactionReference' => $xmlResult->transactionResponse->transId[0]];
-            } else {
-                return ['error' => 1, 'errorMessage' => (string)$xmlResult->transactionResponse->errors[0]->error->errorText];
+                if ($resultcode == '1' || $resultcode == '4') {
+                    return ['error' => 0, 'transactionReference' => $xmlResult->transactionResponse->transId[0]];
+                } else {
+                    return ['error' => 1, 'errorMessage' => (string)$xmlResult->transactionResponse->errors[0]->error->errorText];
+                }
+
+            } catch (Exception $e) {
+                return ['error' => 1, 'errorMessage' => t('An error occurred, the transaction did not succeed')];
             }
-
-        } catch (Exception $e) {
-            return ['error' => 1, 'errorMessage' => t('An error occurred, the transaction did not succeed')];
         }
+
+        return ['error' => 1, 'errorMessage' => t('An error occurred, the transaction did not succeed')];
     }
 
     public function getPaymentMethodName()

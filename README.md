@@ -2,8 +2,11 @@
 
 ----
 # community_store_authorize_net
-Authorize.net payment add-on for Community Store for concrete5
 
+Note: this add-ons uses a legacy integration method and is no longer recommended.
+Please refer to the [Accept Hosted](https://github.com/concretecms-community-store/community_store_authorize_net_accept_hosted) payment method.
+
+Authorize.net payment add-on for Community Store for concrete5
 http://www.authorize.net/
 
 ## Setup

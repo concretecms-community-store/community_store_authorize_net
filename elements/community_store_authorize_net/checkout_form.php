@@ -1,179 +1,173 @@
 <?php defined('C5_EXECUTE') or die(_("Access Denied."));
 extract($vars);
 ?>
-<script src="<?= str_replace('/index.php/', '/', URL::to('packages/community_store_authorize_net/js/jquery.payment.min.js'));?>"></script>
+<script src="<?= h(str_replace('/index.php/', '/', (string) \Concrete\Core\Support\Facade\Url::to('packages/community_store_authorize_net/js/card-input.js'))); ?>"></script>
 <script type="text/javascript" src="https://js<?php echo ($mode == 'test' ? 'test' : '');?>.authorize.net/v1/Accept.js" charset="utf-8"></script>
 
 <script>
+    function an_getForm() {
+        return document.getElementById('store-checkout-form-group-payment');
+    }
+
+    function an_getSubmitButton() {
+        return an_getForm().querySelector('[data-payment-method-id="<?= (int) $pmID; ?>"] .store-btn-complete-order');
+    }
 
     function an_responseHandler(response) {
         if (response.messages.resultCode === 'Error') {
             an_handleError(response);
         } else {
-            an_handleSuccess(response.opaqueData)
+            an_handleSuccess(response.opaqueData);
         }
     }
 
     function an_handleSuccess(responseData) {
+        var form = an_getForm();
 
-        var form = $('#store-checkout-form-group-payment');
-
-        $('<input>')
-            .attr({type: 'hidden', name: 'dataValue'})
-            .val(responseData.dataValue)
-            .appendTo(form);
-
-        $('<input>')
-            .attr({type: 'hidden', name: 'dataDesc'})
-            .val(responseData.dataDescriptor)
-            .appendTo(form);
+        [['dataValue', responseData.dataValue], ['dataDesc', responseData.dataDescriptor]].forEach(function (field) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = field[0];
+            input.value = field[1];
+            form.appendChild(input);
+        });
 
         // Resubmit the form to the server
         //
-        // Only the card_token will be submitted to your server. The
-        // browser ignores the original form inputs because they don't
+        // Only the payment nonce will be submitted to your server. The
+        // browser ignores the original card inputs because they don't
         // have their 'name' attribute set.
-        form.get(0).submit();
+        form.submit();
     }
 
     function an_handleError(response) {
-
-        var form = $('#store-checkout-form-group-payment'),
-            submitButton = form.find("[data-payment-method-id=\"<?= $pmID; ?>\"] .store-btn-complete-order"),
-            errorContainer = form.find('.an-payment-errors');
+        var form = an_getForm(),
+            submitButton = an_getSubmitButton(),
+            errorContainer = form.querySelector('.an-payment-errors');
 
         for (var i = 0; i < response.messages.message.length; i++) {
-            $('<p class="alert alert-danger">').text(response.messages.message[i].text).appendTo(errorContainer);
+            var error = document.createElement('p');
+            error.className = 'alert alert-danger';
+            error.textContent = response.messages.message[i].text;
+            errorContainer.appendChild(error);
         }
 
-        errorContainer.show();
+        errorContainer.style.display = '';
 
         // Re-enable the submit button
-        submitButton.removeAttr('disabled');
-        submitButton.val('<?= t('Complete Order'); ?>');
+        submitButton.disabled = false;
+        submitButton.value = <?= json_encode(t('Complete Order')); ?>;
     }
 
-    // 1. Wait for the page to load
-    $(window).on('load', function() {
+    // 1. Wait for the page (and payment methods) to load
+    window.addEventListener('load', function () {
+        var form = an_getForm();
 
-        $('#an-cc-number').payment('formatCardNumber');
-        $('#an-cc-exp').payment('formatCardExpiry');
-        $('#an-cc-cvc').payment('formatCardCVC');
+        // the payment methods can be loaded more than once, only initialise once
+        if (!form || form.classList.contains('an-payment-init')) {
+            return;
+        }
+        form.classList.add('an-payment-init');
 
-        $('#an-cc-number').bind("keyup change", function(e) {
-            var validcard = $.payment.validateCardNumber($(this).val());
+        var card = communityStoreCardInput;
+        var numberField = document.getElementById('an-cc-number');
+        var expiryField = document.getElementById('an-cc-exp');
+        var cvcField = document.getElementById('an-cc-cvc');
 
-            if (validcard) {
-                $(this).closest('.form-group').removeClass('has-error');
+        card.formatCardNumber(numberField);
+        card.formatCardExpiry(expiryField);
+        card.formatCardCVC(cvcField);
+
+        // mark a field as valid or invalid
+        var setValid = function (field, valid) {
+            var group = field.closest('.form-group');
+            if (group) {
+                group.classList.toggle('has-error', !valid);
             }
-        });
+            field.classList.toggle('is-invalid', !valid);
+        };
 
-        $('#an-cc-exp').bind("keyup change", function(e) {
-            var validcard = $.payment.validateCardNumber($(this).val());
-
-            var expiry = $(this).payment('cardExpiryVal');
-            var validexpiry = $.payment.validateCardExpiry(expiry.month, expiry.year);
-
-            if (validexpiry) {
-                $(this).closest('.form-group').removeClass('has-error');
-            }
-        });
-
-        $('#an-cc-cvc').bind("keyup change", function(e) {
-            var validcv = $.payment.validateCardCVC($(this).val());
-
-            if (validcv) {
-                $('#an-cc-cvc').closest('.form-group').removeClass('has-error');
-            }
-        });
-
-
-        var form = $('#store-checkout-form-group-payment'),
-            submitButton = form.find("[data-payment-method-id=\"<?= $pmID; ?>\"] .store-btn-complete-order"),
-            errorContainer = form.find('.an-payment-errors');
-
-        // 3. Add a submit handler
-        form.submit(function(e) {
-            var currentpmid = $('input[name="payment-method"]:checked:first').data('payment-method-id');
-
-            if (currentpmid == <?= $pmID; ?>) {
-                e.preventDefault();
-
-                var allvalid = true;
-
-                var validcard = $.payment.validateCardNumber($('#an-cc-number').val());
-
-                if (!validcard) {
-                    $('#an-cc-number').closest('.form-group').addClass('has-error').find('input').addClass('is-invalid');
-                    allvalid = false;
-                } else {
-                    $('#an-cc-number').closest('.form-group').removeClass('has-error').find('input').removeClass('is-invalid');
-                }
-
-                var expiry = $('#an-cc-exp').payment('cardExpiryVal');
-                var validexpiry = $.payment.validateCardExpiry(expiry.month, expiry.year);
-
-                if (!validexpiry) {
-                    $('#an-cc-exp').closest('.form-group').addClass('has-error').find('input').addClass('is-invalid');
-                    allvalid = false;
-                } else {
-                    $('#an-cc-exp').closest('.form-group').removeClass('has-error').find('input').removeClass('is-invalid');
-                }
-
-                var validcv = $.payment.validateCardCVC($('#an-cc-cvc').val());
-
-                if (!validcv) {
-                    $('#an-cc-cvc').closest('.form-group').addClass('has-error').find('input').addClass('is-invalid');
-                    allvalid = false;
-                } else {
-                    $('#an-cc-cvc').closest('.form-group').removeClass('has-error').find('input').removeClass('is-invalid');
-                }
-
-                if (!allvalid) {
-                    if (!validcard) {
-                        $('#an-cc-number').focus()
-                    } else {
-                        if (!validexpiry) {
-                            $('#an-cc-exp').focus()
-                        } else {
-                            if (!validcv) {
-                                $('#an-cc-cvc').focus()
-                            }
-                        }
+        // clear errors as soon as a field becomes valid
+        var clearWhenValid = function (field, isValid) {
+            ['keyup', 'change'].forEach(function (eventName) {
+                field.addEventListener(eventName, function () {
+                    if (isValid()) {
+                        setValid(field, true);
                     }
+                });
+            });
+        };
 
-                    return false;
-                }
-
-                // Clear previous errors
-                errorContainer.empty();
-                errorContainer.hide();
-
-                // Disable the submit button to prevent multiple clicks
-                submitButton.attr({disabled: true});
-                submitButton.val('<?= t('Processing...'); ?>');
-
-                var secureData = {}, authData = {}, cardData = {};
-
-                cardData.cardNumber = $('#an-cc-number').val().replace(/\s/g,'');
-                cardData.month =  expiry.month > 9 ? "" + expiry.month : "0" + expiry.month;
-                cardData.year = expiry.year;
-                cardData.cardCode = $('#an-cc-cvc').val().replace(/\s/g,'');
-                secureData.cardData = cardData;
-
-                authData.apiLoginID = '<?php echo $loginID; ?>';
-                authData.clientKey = '<?php echo $clientKey; ?>';
-                secureData.authData = authData;
-
-                Accept.dispatchData(secureData, 'an_responseHandler');
-            }
-
+        clearWhenValid(numberField, function () {
+            return card.validateCardNumber(numberField.value);
+        });
+        clearWhenValid(expiryField, function () {
+            var expiry = card.cardExpiryVal(expiryField.value);
+            return card.validateCardExpiry(expiry.month, expiry.year);
+        });
+        clearWhenValid(cvcField, function () {
+            return card.validateCardCVC(cvcField.value);
         });
 
+        // 2. Add a submit handler
+        form.addEventListener('submit', function (e) {
+            var selected = form.querySelector('input[name="payment-method"]:checked');
 
+            if (!selected || selected.getAttribute('data-payment-method-id') != <?= json_encode((string) $pmID); ?>) {
+                return;
+            }
+
+            e.preventDefault();
+
+            var submitButton = an_getSubmitButton(),
+                errorContainer = form.querySelector('.an-payment-errors');
+
+            var validcard = card.validateCardNumber(numberField.value);
+            var expiry = card.cardExpiryVal(expiryField.value);
+            var validexpiry = card.validateCardExpiry(expiry.month, expiry.year);
+            var validcv = card.validateCardCVC(cvcField.value);
+
+            setValid(numberField, validcard);
+            setValid(expiryField, validexpiry);
+            setValid(cvcField, validcv);
+
+            if (!validcard) {
+                numberField.focus();
+                return;
+            }
+            if (!validexpiry) {
+                expiryField.focus();
+                return;
+            }
+            if (!validcv) {
+                cvcField.focus();
+                return;
+            }
+
+            // Clear previous errors
+            errorContainer.innerHTML = '';
+            errorContainer.style.display = 'none';
+
+            // Disable the submit button to prevent multiple clicks
+            submitButton.disabled = true;
+            submitButton.value = <?= json_encode(t('Processing...')); ?>;
+
+            var secureData = {
+                cardData: {
+                    cardNumber: numberField.value.replace(/\s/g, ''),
+                    month: expiry.month > 9 ? '' + expiry.month : '0' + expiry.month,
+                    year: String(expiry.year),
+                    cardCode: cvcField.value.replace(/\s/g, '')
+                },
+                authData: {
+                    apiLoginID: <?= json_encode((string) $loginID); ?>,
+                    clientKey: <?= json_encode((string) $clientKey); ?>
+                }
+            };
+
+            Accept.dispatchData(secureData, 'an_responseHandler');
+        });
     });
-
-
 </script>
 
 
